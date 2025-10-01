@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>استرجاع كلمة المرور - On Time Ride</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@200..1000&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Cairo', sans-serif; }
+    .bg-grad { background: linear-gradient(135deg, #10B981 0%, #059669 100%); }
+  </style>
+</head>
+<body class="bg-grad min-h-screen">
+  <div class="min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white/95 backdrop-blur p-6 md:p-8 rounded-2xl shadow-2xl space-y-6">
+      <div class="text-center space-y-2">
+        <img src="81077e1b-876b-43d3-913b-d8a24361fefb.jpg" class="w-20 mx-auto rounded-lg" alt="Logo" />
+        <h1 class="text-2xl font-extrabold text-gray-800">استرجاع كلمة المرور</h1>
+        <p class="text-gray-500 text-sm">أدخل رقم هاتفك لإرسال رمز OTP ثم عيّن كلمة مرور جديدة</p>
+      </div>
+
+      <div id="alert-box" class="hidden p-3 rounded border text-sm"></div>
+
+      <form id="step-phone" class="space-y-3">
+        <label class="block text-sm font-medium text-gray-700">رقم الهاتف</label>
+        <input type="tel" id="reset-phone" placeholder="مثال: 07XXXXXXXX أو +9627XXXXXXXX" class="w-full p-3 border rounded" />
+        <div id="recaptcha-container-reset" class="mb-2"></div>
+        <button id="send-otp" class="w-full bg-blue-600 hover:bg-blue-700 text-white p-3 rounded">إرسال الرمز</button>
+      </form>
+
+      <form id="step-code" class="space-y-3 hidden">
+        <label class="block text-sm font-medium text-gray-700">رمز التحقق</label>
+        <input type="text" id="reset-code" placeholder="XXXXXX" class="w-full p-3 border rounded" />
+        <label class="block text-sm font-medium text-gray-700">كلمة مرور جديدة</label>
+        <input type="password" id="reset-new-password" placeholder="********" class="w-full p-3 border rounded" />
+        <button id="confirm-reset" class="w-full bg-green-600 hover:bg-green-700 text-white p-3 rounded">تعيين كلمة المرور الجديدة</button>
+      </form>
+
+      <div class="text-center">
+        <a href="index.html" class="text-sm text-green-700 hover:text-green-900 underline">العودة إلى تسجيل الدخول</a>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, collection, query, where, getDocs, doc, updateDoc, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // نفس الإعدادات المستخدمة في index.html
+    const firebaseConfig = {
+      apiKey: "AIzaSyBXMlBGXrsCpoOx-f0FIJfmKnZ3zJriSYo",
+      authDomain: "studio-6363184362-1cad6.firebaseapp.com",
+      projectId: "studio-6363184362-1cad6",
+      storageBucket: "studio-6363184362-1cad6.firebasestorage.app",
+      messagingSenderId: "951534501555",
+      appId: "1:951534501555:web:4f34afc6dd4850d104bac6"
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const DEFAULT_COUNTRY_CODE = '+962';
+    function toE164(raw) {
+      if (!raw) return '';
+      let v = ('' + raw).trim();
+      v = v.replace(/\s+/g, '');
+      if (v.startsWith('+')) return v;
+      if (v.startsWith('00')) return '+' + v.slice(2);
+      if (v.startsWith('0') && DEFAULT_COUNTRY_CODE) {
+        return DEFAULT_COUNTRY_CODE + v.slice(1);
+      }
+      return '+' + v;
+    }
+    const toDigits = v => (''+v).replace(/\D/g,'');
+
+    function showAlert(msg, type='info') {
+      const box = document.getElementById('alert-box');
+      box.className = '';
+      box.classList.add('p-3','rounded','border','text-sm');
+      if (type==='error') {
+        box.classList.add('bg-red-50','border-red-300','text-red-700');
+      } else if (type==='success') {
+        box.classList.add('bg-green-50','border-green-300','text-green-700');
+      } else {
+        box.classList.add('bg-yellow-50','border-yellow-300','text-yellow-800');
+      }
+      box.textContent = msg;
+      box.classList.remove('hidden');
+    }
+
+    let recaptchaReset;
+    function ensureRecaptcha() {
+      if (recaptchaReset) return recaptchaReset;
+      recaptchaReset = new RecaptchaVerifier(auth, 'recaptcha-container-reset', { size: 'invisible' });
+      return recaptchaReset;
+    }
+
+    let _confirmation;
+    let _resetDigits = '';
+
+    // إرسال OTP
+    document.getElementById('send-otp').onclick = async (e) => {
+      e.preventDefault();
+      try {
+        const e164 = toE164(document.getElementById('reset-phone').value);
+        const clean = e164.replace(/[^\d+]/g, '');
+        if (!clean.startsWith('+') || clean.length < 10) {
+          showAlert('رقم الهاتف غير صحيح.', 'error');
+          return;
+        }
+        const digits = toDigits(clean);
+        // تحقق وجود السائق
+        const snap = await getDocs(query(collection(db,'drivers'), where('phoneNumber','==', digits)));
+        if (snap.empty) { showAlert('لا يوجد سائق مسجل بهذا الرقم.', 'error'); return; }
+
+        const verifier = ensureRecaptcha();
+        _confirmation = await signInWithPhoneNumber(auth, clean, verifier);
+        _resetDigits = digits;
+        document.getElementById('step-phone').classList.add('hidden');
+        document.getElementById('step-code').classList.remove('hidden');
+        showAlert('تم إرسال رمز التحقق عبر SMS.','success');
+      } catch (e2) {
+        console.error('send reset otp error', e2);
+        showAlert(e2.message || 'فشل إرسال الرمز', 'error');
+      }
+    };
+
+    async function hashPassword(str) {
+      const enc = new TextEncoder();
+      const buf = await crypto.subtle.digest('SHA-256', enc.encode(str));
+      const arr = Array.from(new Uint8Array(buf));
+      return arr.map(b => b.toString(16).padStart(2,'0')).join('');
+    }
+
+    // تأكيد الرمز وتعيين كلمة المرور
+    document.getElementById('confirm-reset').onclick = async (e) => {
+      e.preventDefault();
+      try {
+        if (!_confirmation) { showAlert('أرسل الرمز أولاً.', 'error'); return; }
+        const code = (document.getElementById('reset-code').value || '').trim();
+        const newPwd = (document.getElementById('reset-new-password').value || '').trim();
+        if (!code) { showAlert('أدخل الرمز.', 'error'); return; }
+        if (!newPwd || newPwd.length < 4) { showAlert('كلمة المرور يجب أن تكون 4 أحرف على الأقل.', 'error'); return; }
+
+        await _confirmation.confirm(code);
+        // العثور على السائق وتحديث كلمة المرور
+        const snap = await getDocs(query(collection(db,'drivers'), where('phoneNumber','==', _resetDigits)));
+        if (snap.empty) { showAlert('لا يوجد سائق مسجل بهذا الرقم.', 'error'); return; }
+        const driverId = snap.docs[0].id;
+        const hash = await hashPassword(newPwd);
+        await updateDoc(doc(db,'drivers', driverId), { passwordHash: hash, password: deleteField(), password_reset_at: new Date().toISOString() });
+        showAlert('تم تعيين كلمة المرور الجديدة بنجاح. يمكنك الآن العودة لتسجيل الدخول.','success');
+      } catch (e3) {
+        console.error('confirm reset error', e3);
+        showAlert(e3.message || 'فشل التحقق أو التعيين', 'error');
+      }
+    };
+  </script>
+</body>
+</html>

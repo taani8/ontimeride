@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="ar" dir="rtl" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>لوحة التحكم - On Time Ride</title>
+  <!-- Tailwind CSS (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Tailwind config: enable dark mode via class
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          container: { center: true },
+        }
+      }
+    }
+  </script>
+  <link rel="icon" href="../81077e1b-876b-43d3-913b-d8a24361fefb.jpg" />
+</head>
+<body class="h-full bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+  <!-- Page Shell -->
+  <div class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="sticky top-0 z-40 bg-white/90 dark:bg-gray-900/80 backdrop-blur border-b border-gray-200 dark:border-gray-800">
+      <div class="container max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <img src="../81077e1b-876b-43d3-913b-d8a24361fefb.jpg" alt="On Time Ride" class="w-8 h-8 rounded" />
+          <h1 class="text-lg sm:text-xl font-extrabold">لوحة التحكم - On Time Ride</h1>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="themeToggle" aria-label="تبديل السمة" class="inline-flex items-center justify-center rounded-md border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+            <span class="sr-only">تبديل السمة</span>
+            <span aria-hidden="true">🌙</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 container max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+      <!-- KPI Cards -->
+      <section aria-labelledby="stats-heading" class="mb-8">
+        <h2 id="stats-heading" class="sr-only">إحصائيات عامة</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Total Drivers -->
+          <div class="rounded-xl p-5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">إجمالي السائقين</p>
+                <p class="mt-2 text-3xl font-bold" id="totalDrivers">--</p>
+              </div>
+              <div class="text-3xl">👥</div>
+            </div>
+          </div>
+          <!-- Total Trips -->
+          <div class="rounded-xl p-5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">إجمالي الرحلات</p>
+                <p class="mt-2 text-3xl font-bold" id="totalTrips">--</p>
+              </div>
+              <div class="text-3xl">🚗</div>
+            </div>
+          </div>
+          <!-- Earnings -->
+          <div class="rounded-xl p-5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">إجمالي العمولات</p>
+                <p class="mt-2 text-3xl font-bold" id="earnings">--</p>
+              </div>
+              <div class="text-3xl">💰</div>
+            </div>
+          <!-- Active Drivers -->
+          <div class="rounded-xl p-5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">السائقون النشطون</p>
+                <p class="mt-2 text-3xl font-bold" id="activeDrivers">--</p>
+              </div>
+              <div class="text-3xl">🟢</div>
+            </div>
+          </div>
+          <!-- Chart Placeholder -->
+          <section aria-labelledby="chart-heading" class="mb-10">
+            <div class="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm p-4 sm:p-6">
+              <div class="flex items-center justify-between mb-4">
+                <h2 id="chart-heading" class="text-lg font-bold">ملخص الرحلات</h2>
+              </div>
+              <div id="tripsChart" class="relative w-full" style="height: 320px;">
+                <!-- Optional: if you use Chart.js, you can place a canvas inside this container. -->
+                <!-- <canvas id="tripsChartCanvas"></canvas> -->
+              </div>
+            </div>
+          </section>
+
+          <!-- Latest Trips Table -->
+          <section aria-labelledby="table-heading" class="mb-6">
+            <div class="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+              <div class="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+            <h2 id="table-heading" class="text-lg font-bold">أحدث الرحلات</h2>
+          </div>
+          <div class="overflow-x-auto">
+            <table id="tripsTable" class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead class="bg-gray-50 dark:bg-gray-900/40">
+                <tr>
+                  <th scope="col" class="px-4 py-3 text-start text-xs font-semibold text-gray-600 dark:text-gray-300">السائق</th>
+                  <th scope="col" class="px-4 py-3 text-start text-xs font-semibold text-gray-600 dark:text-gray-300">النوع</th>
+                  <th scope="col" class="px-4 py-3 text-start text-xs font-semibold text-gray-600 dark:text-gray-300">التاريخ</th>
+                  <th scope="col" class="px-4 py-3 text-start text-xs font-semibold text-gray-600 dark:text-gray-300">السعر</th>
+                  <th scope="col" class="px-4 py-3 text-start text-xs font-semibold text-gray-600 dark:text-gray-300">العمولة</th>
+                  <th scope="col" class="px-4 py-3 text-start text-xs font-semibold text-gray-600 dark:text-gray-300">الحالة</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
+                <!-- Existing JS should populate rows here by #tripsTable -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="py-6 text-center text-xs text-gray-500 dark:text-gray-400">
+      © <span id="yearCopy"></span> On Time Ride
+    </footer>
+  </div>
+
+  <!-- Theme Toggle Script (minimal) -->
+  <script>
+    (function(){
+      const root = document.documentElement;
+      const key = 'theme-preference';
+      const stored = localStorage.getItem(key);
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if ((stored === 'dark') || (!stored && prefersDark)) {
+        root.classList.add('dark');
+      }
+      const btn = document.getElementById('themeToggle');
+      btn?.addEventListener('click', () => {
+        root.classList.toggle('dark');
+        const next = root.classList.contains('dark') ? 'dark' : 'light';
+        localStorage.setItem(key, next);
+      });
+      document.getElementById('yearCopy').textContent = String(new Date().getFullYear());
+    })();
+  </script>
+
+  <!-- Optional: Chart.js placeholder init -->
+  <!--
+  1) Add Chart.js CDN right before this script:
+     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  2) Uncomment the block below to initialize a chart into #tripsChart.
+  <script>
+    (function(){
+      const container = document.getElementById('tripsChart');
+      if (!container) return;
+      let canvas = container.querySelector('canvas');
+      if (!canvas) {
+        canvas = document.createElement('canvas');
+        container.appendChild(canvas);
+      }
+      const ctx = canvas.getContext('2d');
+      // Example dataset
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+          datasets: [{
+            label: 'الرحلات',
+            data: [12, 19, 3, 5, 2, 3, 9],
+            borderColor: '#22c55e',
+            backgroundColor: 'rgba(34,197,94,0.2)',
+            tension: 0.3,
+            fill: true
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    })();
+  </script>
+  -->
+
+  <!-- Firebase + App wiring (minimal) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    let app, db, auth; let userId = 'loading';
+    const getCollectionPath = (name) => name;
+    Object.assign(window, { getCollectionPath });
+
+    function formatCurrency(n){ const v = Number(n||0); return `${v.toFixed(2)} دينار`; }
+
+    window.appState = window.appState || { drivers: [], trips: [], isAuthReady: false };
+
+    async function setupFirebase(){
+      try {
+        const firebaseConfig = {
+          apiKey: "AIzaSyBXMlBGXrsCpoOx-f0FIJfmKnZ3zJriSYo",
+          authDomain: "studio-6363184362-1cad6.firebaseapp.com",
+          projectId: "studio-6363184362-1cad6",
+          storageBucket: "studio-6363184362-1cad6.firebasestorage.app",
+          messagingSenderId: "951534501555",
+          appId: "1:951534501555:web:4f34afc6dd4850d104bac6"
+        };
+        app = initializeApp(firebaseConfig);
+        db = (await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js")).getFirestore(app);
+        auth = (await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js")).getAuth(app);
+        const { setPersistence, browserLocalPersistence, signInAnonymously } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
+        await setPersistence(auth, browserLocalPersistence);
+        await signInAnonymously(auth);
+        onAuthStateChanged(auth, (user) => { if (user) { userId = user.uid; startListeners(); } });
+      } catch (e) { console.error('Firebase setup error (admin/dashboard.html minimal):', e); }
+    }
+
+    function startListeners(){
+      if (!db || window._dashListeners) return; window._dashListeners = true;
+      onSnapshot(collection(db, getCollectionPath('drivers')), (snapshot) => {
+        window.appState.drivers = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderStats();
+      });
+      onSnapshot(collection(db, getCollectionPath('trips')), (snapshot) => {
+        window.appState.trips = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderStats();
+        renderTripsTable();
+      });
+    }
+
+    function renderStats(){
+      const drivers = window.appState.drivers || [];
+      const trips = window.appState.trips || [];
+      const totalDrivers = drivers.length;
+      const totalTrips = trips.length;
+      const earnings = trips.reduce((s,t)=> s + (Number(t.commissionAmount)||0), 0);
+      const from = new Date(); from.setDate(from.getDate()-7);
+      const recentTripsByDriver = new Set(trips.filter(t => { const d = new Date(t.dateAdded); return !isNaN(d) && d >= from; }).map(t => t.driverId));
+      const activeDrivers = recentTripsByDriver.size;
+      const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+      setText('totalDrivers', totalDrivers);
+      setText('totalTrips', totalTrips);
+      setText('earnings', formatCurrency(earnings));
+      setText('activeDrivers', activeDrivers);
+    }
+
+    function renderTripsTable(){
+      const tbody = document.querySelector('#tripsTable tbody'); if (!tbody) return;
+      const typeMap = { airport:'مطار', families:'عائلات', passengers:'ركاب عاديين', vip:'VIP' };
+      const trips = (window.appState.trips || []).slice().sort((a,b)=> (new Date(b.dateAdded||0)) - (new Date(a.dateAdded||0))).slice(0, 50);
+      tbody.innerHTML = trips.map(t => {
+        const dateStr = t.dateAdded ? new Date(t.dateAdded).toLocaleString('ar-EG') : '';
+        const price = Number(t.totalPrice||0).toFixed(2);
+        const comm = Number(t.commissionAmount||0).toFixed(2);
+        return `
+          <tr class="hover:bg-gray-50 dark:hover:bg-gray-900/40">
+            <td class="px-4 py-3 whitespace-nowrap text-sm">${t.driverName || t.driverId || ''}</td>
+            <td class="px-4 py-3 whitespace-nowrap text-sm">${typeMap[t.tripType] || t.tripType || ''}</td>
+            <td class="px-4 py-3 whitespace-nowrap text-sm">${dateStr}</td>
+            <td class="px-4 py-3 whitespace-nowrap text-sm">${price}</td>
+            <td class="px-4 py-3 whitespace-nowrap text-sm">${comm}</td>
+            <td class="px-4 py-3 whitespace-nowrap text-sm">✓</td>
+          </tr>`;
+      }).join('');
+    }
+
+    setupFirebase();
+  </script>
+
+  <!-- Load project helpers (optional, after globals are exposed by the module) -->
+  <script src="../app.js"></script>
+</body>
+</html>

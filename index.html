@@ -1,0 +1,1704 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="81077e1b-876b-43d3-913b-d8a24361fefb.jpg" style="display:none;visibility:hidden;height:0;width:0;overflow:hidden;position:absolute;z-index:-1">
+    <title>On Time Ride</title>
+    
+    <!-- Tailwind CSS CDN للتنمية فقط -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js للرسوم البيانية -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- تضمين الخط -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@200..1000&display=swap" rel="stylesheet">
+    
+
+    <style>
+        :root {
+            --primary-color: #10B981;
+            --secondary-color: #059669;
+            --accent-color: #34D399;
+            --background-color: #f8fafc;
+            --surface-color: #ffffff;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --shadow-light: rgba(0, 0, 0, 0.1);
+            --shadow-medium: rgba(0, 0, 0, 0.15);
+            --border-radius: 12px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            text-align: right;
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        
+        .card {
+            box-shadow: 0 10px 25px -3px var(--shadow-light), 0 4px 6px -2px var(--shadow-light);
+            background: var(--surface-color);
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            box-shadow: 0 20px 40px -3px var(--shadow-medium), 0 8px 16px -2px var(--shadow-medium);
+            transform: translateY(-2px);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border: none;
+            border-radius: var(--border-radius);
+            color: white;
+            font-weight: 600;
+            transition: var(--transition);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, var(--secondary-color) 0%, #047857 100%);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+            transform: translateY(-1px);
+        }
+        
+        .driver-panel-bg {
+            background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+        }
+        
+        .logo-img {
+            height: 40px;
+            width: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px var(--shadow-light);
+        }
+
+        .title-gradient {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        #app-container {
+            min-height: calc(100vh - 80px);
+            position: relative;
+            z-index: 1;
+        }
+        
+        #status-message {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            pointer-events: none;
+            padding: 1rem;
+            text-align: center;
+            font-weight: bold;
+            opacity: 0;
+            transform: translateY(-100%);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-bottom: 1px solid #f59e0b;
+            color: #92400e;
+        }
+        
+        #status-message.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        form input,
+        form select,
+        form textarea,
+        form button {
+            position: relative;
+            z-index: 1100;
+            border-radius: 8px;
+            border: 2px solid #e5e7eb;
+            transition: var(--transition);
+        }
+
+        form input:focus,
+        form select:focus,
+        form textarea:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+            outline: none;
+        }
+        
+        form {
+            pointer-events: auto;
+        }
+
+        // Toast API
+        window.showToast = function(type, message) {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const wrap = document.createElement('div');
+            wrap.className = 'pointer-events-auto min-w-[260px] max-w-sm shadow-lg rounded-lg px-4 py-3 text-sm border flex items-start gap-2 bg-white';
+            const tone = type === 'success' ? 'border-green-300 text-green-800 bg-green-50' : type === 'error' ? 'border-red-300 text-red-800 bg-red-50' : 'border-amber-300 text-amber-800 bg-amber-50';
+            wrap.className += ' ' + tone;
+            wrap.innerHTML = `<span>${message}</span>`;
+            container.appendChild(wrap);
+            setTimeout(() => {
+                wrap.classList.add('opacity-0','translate-y-1','transition');
+                setTimeout(() => container.removeChild(wrap), 300);
+            }, 2500);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: 0 4px 12px var(--shadow-light);
+        }
+
+        /* Modal improvements */
+        .modal-backdrop {
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background: var(--surface-color);
+            border-radius: var(--border-radius);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        /* Drawer improvements */
+        .drawer-panel {
+            background: var(--surface-color);
+            border-radius: 0 16px 16px 0;
+            box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Loading spinner */
+        .loading-spinner {
+            border: 4px solid #e5e7eb;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+    <!-- Cairo Arabic Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <!-- شريط علوي بسيط -->
+    <nav id="top-static-nav" class="bg-white/95 backdrop-blur-md shadow-lg p-4 border-b border-gray-200/50">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-2 rtl:space-x-reverse">
+                <img src="81077e1b-876b-43d3-913b-d8a24361fefb.jpg" alt="On Time Ride Logo" class="logo-img rounded-lg">
+                <h1 class="text-xl font-extrabold title-gradient">On Time Ride</h1>
+            </div>
+            
+            <button id="toggle-view-btn" onclick="window.setAppView(window.appState.view === 'admin' ? 'driver-login' : 'admin-check')" class="text-sm bg-gray-100 hover:bg-gray-200 p-2 rounded-lg transition">التبديل</button>
+        </div>
+    </nav>
+    
+    <!-- عرض رسالة الحالة -->
+    <div id="status-message" class="hidden fixed top-0 right-0 left-0 p-4 text-center font-semibold border-b"></div>
+
+    <!-- Toasts Container -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2 pointer-events-none"></div>
+
+    <!-- محتوى التطبيق الرئيسي -->
+    <!-- Mobile Drawer (global) -->
+    <div class="drawer-overlay hidden"></div>
+    <aside class="drawer-panel hidden">
+        <div class="p-4 border-b flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <img src="81077e1b-876b-43d3-913b-d8a24361fefb.jpg" class="w-8 h-8 rounded" alt="Logo" />
+                <span class="font-extrabold">On Time Ride</span>
+            </div>
+            <button id="drawer-close" class="btn btn-secondary btn-sm">✕</button>
+        </div>
+        <nav class="p-2 flex flex-col gap-1">
+            <a href="#" class="topnav-link px-3 py-2 rounded-lg text-sm" data-view="admin"> اللوحة</a>
+            <a href="#" class="topnav-link px-3 py-2 rounded-lg text-sm" data-view="driver-management"> السائقون</a>
+            <a href="#" class="topnav-link px-3 py-2 rounded-lg text-sm" data-view="trips-management"> الرحلات</a>
+            <a href="#" class="topnav-link px-3 py-2 rounded-lg text-sm text-red-700" data-view="logout">خروج</a>
+            <hr class="my-2">
+            <button id="theme-toggle-mobile" class="btn btn-secondary btn-sm"> تبديل المظهر</button>
+        </nav>
+    </aside>
+
+    <div id="app-container">
+        <div class="flex justify-center items-center h-screen">
+            <div class="loading-spinner"></div>
+        </div>
+    </div>
+
+    <!-- Edit Trip Modal -->
+    <div id="edit-trip-modal" class="modal-backdrop hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div class="modal-content bg-white w-full max-w-md rounded-xl shadow-2xl p-6 space-y-4">
+            <h3 class="text-xl font-bold">تعديل الرحلة</h3>
+            <input type="hidden" id="edit-trip-id" />
+            <label class="block text-sm text-gray-700">السعر الإجمالي (دينار)</label>
+            <input id="edit-trip-total" type="number" step="0.01" min="0" class="w-full p-2 border rounded" />
+            <label class="block text-sm text-gray-700">نوع الرحلة</label>
+            <select id="edit-trip-type" class="w-full p-2 border rounded">
+                <option value="airport">مطار</option>
+                <option value="families">عائلات</option>
+                <option value="passengers">ركاب عاديين</option>
+                <option value="vip">VIP</option>
+            </select>
+            <div class="flex justify-end gap-2 pt-2">
+                <button id="edit-trip-cancel" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded">إلغاء</button>
+                <button id="edit-trip-save" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded">حفظ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Trip Modal -->
+    <div id="delete-trip-modal" class="modal-backdrop hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div class="modal-content bg-white w-full max-w-md rounded-xl shadow-2xl p-6 space-y-4">
+            <h3 class="text-xl font-bold text-red-700">حذف الرحلة</h3>
+            <input type="hidden" id="delete-trip-id" />
+            <p class="text-sm text-gray-700">سيتم حذف الرحلة وعكس قيمة العمولة على رصيد السائق. هل أنت متأكد؟</p>
+            <div class="flex justify-end gap-2 pt-2">
+                <button id="delete-trip-cancel" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded">إلغاء</button>
+                <button id="delete-trip-confirm" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded">حذف</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, setPersistence, browserLocalPersistence, signInWithEmailAndPassword, signOut, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, updateDoc, onSnapshot, collection, query, where, addDoc, getDocs, runTransaction, getDoc, deleteDoc, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+
+        // إظهار سجلات التنقيح (Debug)
+        setLogLevel('debug');
+
+        // متغيرات Firebase العامة
+        let app, db, auth, storage;
+        let userId = 'loading';
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        // دالة تنبيه بسيطة قبل تحميل app.js (سيتم استبدالها لاحقاً)
+        function alertUser(message) {
+            const messageBox = document.getElementById('status-message');
+            if (!messageBox) { console.warn(message); return; }
+            messageBox.innerText = message;
+            messageBox.classList.remove('hidden');
+            messageBox.classList.add('show', 'bg-yellow-100', 'border-yellow-400', 'text-yellow-700');
+            setTimeout(() => {
+                messageBox.classList.remove('show');
+                setTimeout(() => { messageBox.classList.add('hidden'); }, 300);
+            }, 3000);
+        }
+        // إتاحة الدالة مؤقتاً على window
+        window.alertUser = alertUser;
+
+        // بيانات التطبيق والحالة
+        window.appState = {
+            view: 'driver-login',
+            isAdmin: false, 
+            drivers: [],
+            trips: [],
+            currentDriver: null,
+            errorMessage: '',
+            adminLoginError: '',
+            dbError: '',
+            isAuthReady: false,
+            editingDriver: null,
+            // إدارة السائقين: بحث/تصفية وترقيم صفحات
+            driverSearch: '',
+            driverFilter: 'all', // all | positive | zero | negative
+            driverPage: 1,
+            pageSize: 6,
+            // لوحات التحكم: نطاق التاريخ
+            dateFrom: '', // ISO yyyy-mm-dd
+            dateTo: '',
+            // تسجيل دخول OTP
+            otpError: '',
+            otpPhase: 'idle', // idle | code_sent
+            // إعداد كلمة المرور لأول مرة
+            requireSetPassword: false,
+            setPasswordError: '',
+            // استرجاع كلمة المرور عبر OTP
+            resetPasswordMode: false,
+            resetOtpError: '',
+            resetOtpPhase: 'idle', // idle | code_sent
+            _resetPhoneNormalized: ''
+        };
+
+        // مسارات Firestore - استخدام مسار مبسط
+        const getCollectionPath = (collectionName) => collectionName;
+        // إتاحة وظائف Firebase والمراجع على window لاستخدامها من ملفات سكربت غير معيارية
+        Object.assign(window, {
+            getCollectionPath,
+            // سيتم تعيين هذه المتغيرات بعد التهيئة
+            app, db, auth, storage,
+            // دوال Firestore/Storage الضرورية لاستخدامها خارج الموديول
+            doc, collection, addDoc, updateDoc, getDocs, query, where, runTransaction,
+            ref, uploadBytes, getDownloadURL, deleteDoc,
+        });
+
+        // 1. إعداد Firebase والتوثيق
+        async function setupFirebase() {
+            try {
+                const firebaseConfig = {
+                    apiKey: "AIzaSyBXMlBGXrsCpoOx-f0FIJfmKnZ3zJriSYo",
+                    authDomain: "studio-6363184362-1cad6.firebaseapp.com",
+                    projectId: "studio-6363184362-1cad6",
+                    storageBucket: "studio-6363184362-1cad6.firebasestorage.app",
+                    messagingSenderId: "951534501555",
+                    appId: "1:951534501555:web:4f34afc6dd4850d104bac6"
+                };
+                app = initializeApp(firebaseConfig);
+                
+                try {
+                    db = getFirestore(app);
+                    storage = getStorage(app);
+                    window.appState.dbError = '';
+                } catch (e) {
+                    console.error("خطأ حاد في تهيئة Firestore:", e);
+                    window.appState.dbError = `خطأ في تهيئة قاعدة البيانات (Firestore). يرجى التأكد من تفعيل خدمة Cloud Firestore API في مشروع Firebase الخاص بك (${firebaseConfig.projectId}).`;
+                    renderApp();
+                    return;
+                }
+
+                auth = getAuth(app);
+                await setPersistence(auth, browserLocalPersistence);
+
+                const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+                if (token) {
+                    try {
+                        await signInWithCustomToken(auth, token);
+                    } catch (customTokenError) {
+                        console.warn("فشل التوثيق بالرمز المخصص، التحويل إلى توثيق مجهول:", customTokenError.message);
+                        await signInAnonymously(auth);
+                    }
+                } else {
+                    await signInAnonymously(auth); 
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        // مزامنة userId والمتغيرات على window
+                        window.userId = userId;
+                        window.app = app; window.db = db; window.auth = auth; window.storage = storage;
+                        const isEmailUser = user.email !== null;
+                        
+                        window.appState.isAdmin = isEmailUser; 
+                        
+                        if(window.appState.isAdmin && window.appState.view === 'admin-login') {
+                             window.appState.view = 'admin'; 
+                             alertUser(`تم تسجيل الدخول بنجاح كـ مشرف: ${user.email}`);
+                        }
+
+                        window.appState.isAuthReady = true;
+                        if (db) {
+                           startListeners();
+                        }
+                        renderApp();
+                    } else {
+                        userId = 'anonymous';
+                        window.userId = userId;
+                        window.appState.isAdmin = false;
+                        window.appState.isAuthReady = true;
+                        renderApp();
+                    }
+                });
+
+            // تفويض أزرار الشحن السريع (+5/+10/+20)
+            document.body.addEventListener('click', async (ev) => {
+                const quick = ev.target.closest('.quick-credit');
+                if (!quick) return;
+                ev.preventDefault();
+                const driverId = quick.getAttribute('data-driver-id');
+                const amount = quick.getAttribute('data-amount');
+                // استخدم نفس حارس الانشغال
+                window._creditBusy = window._creditBusy || new Set();
+                if (window._creditBusy.has(driverId)) return;
+                window._creditBusy.add(driverId);
+                try {
+                    await window.creditDriverBalance(driverId, amount);
+                } finally {
+                    window._creditBusy.delete(driverId);
+                    renderApp();
+                }
+            });
+
+            // تم نقل أحداث مودالات الرحلات إلى js/ui/modals.js
+
+            // أزرار نطاق التاريخ الجاهزة في لوحة التحكم
+            document.body.addEventListener('click', (e) => {
+                const p = e.target.closest('.preset-btn');
+                if (!p) return;
+                e.preventDefault();
+                const preset = p.getAttribute('data-preset');
+                const today = new Date();
+                const fmt = (d) => d.toISOString().slice(0,10);
+                let from=null, to=null;
+                if (preset === 'today') { from = fmt(today); to = fmt(today); }
+                else if (preset === '7d') {
+                    const f = new Date(today.getFullYear(), today.getMonth(), today.getDate()-6); from = fmt(f); to = fmt(today);
+                } else if (preset === '30d') {
+                    const f = new Date(today.getFullYear(), today.getMonth(), today.getDate()-29); from = fmt(f); to = fmt(today);
+                } else if (preset === 'month') {
+                    const f = new Date(today.getFullYear(), today.getMonth(), 1);
+                    const t = new Date(today.getFullYear(), today.getMonth()+1, 0);
+                    from = fmt(f); to = fmt(t);
+                } else if (preset === 'custom') {
+                    // لا تغير القيم، فقط عين preset
+                }
+                window.appState.datePreset = preset;
+                if (from && to) { window.appState.dateFrom = from; window.appState.dateTo = to; }
+                renderApp();
+            });
+
+            // زر تطبيق النطاق المخصص
+            document.body.addEventListener('click', (e) => {
+                const btn = e.target.closest('#apply-date-range');
+                if (!btn) return;
+                e.preventDefault();
+                const f = document.getElementById('date-from')?.value || '';
+                const t = document.getElementById('date-to')?.value || '';
+                if (!f || !t) { window.showToast && window.showToast('error','اختر تاريخي البداية والنهاية'); return; }
+                window.appState.datePreset = 'custom';
+                window.appState.dateFrom = f;
+                window.appState.dateTo = t;
+                renderApp();
+            });
+
+            // تبديل كثافة جدول الرحلات
+            document.body.addEventListener('click', (e) => {
+                const btn = e.target.closest('#density-toggle');
+                if (!btn) return;
+                e.preventDefault();
+                const cur = window.appState.tableDensity || 'comfortable';
+                window.appState.tableDensity = (cur === 'comfortable') ? 'condensed' : 'comfortable';
+                renderApp();
+            });
+
+            // ربط روابط أعلى التنقل (بما فيها القائمة الجانبية المتحركة)
+            document.body.addEventListener('click', (e) => {
+                const a = e.target.closest('.topnav-link');
+                if (!a) return;
+                e.preventDefault();
+                const view = a.getAttribute('data-view');
+                if (view === 'logout') {
+                    if (window.adminLogout) window.adminLogout();
+                } else if (view) {
+                    window.setAppView(view === 'admin' ? 'admin-check' : view);
+                }
+                document.body.classList.remove('drawer-open');
+                const overlay = document.querySelector('.drawer-overlay');
+                const panel = document.querySelector('.drawer-panel');
+                if (overlay) overlay.classList.add('hidden');
+                if (panel) panel.classList.add('hidden');
+            });
+
+            // فتح/إغلاق درج الهاتف المحمول
+            document.body.addEventListener('click', (e) => {
+                if (e.target.closest('#mobile-menu-btn')) {
+                    const overlay = document.querySelector('.drawer-overlay');
+                    const panel = document.querySelector('.drawer-panel');
+                    if (overlay && panel) {
+                        document.body.classList.add('drawer-open');
+                        overlay.classList.remove('hidden');
+                        panel.classList.remove('hidden');
+                    }
+                }
+                if (e.target.closest('#drawer-close') || (e.target.classList.contains('drawer-overlay'))) {
+                    const overlay = document.querySelector('.drawer-overlay');
+                    const panel = document.querySelector('.drawer-panel');
+                    document.body.classList.remove('drawer-open');
+                    if (overlay) overlay.classList.add('hidden');
+                    if (panel) panel.classList.add('hidden');
+                }
+            });
+
+            // تبديل الثيم (الوضع الداكن/الفاتح)
+            function toggleTheme(){
+                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                if (isDark) {
+                    document.documentElement.removeAttribute('data-theme');
+                    try { localStorage.setItem('theme','light'); } catch(_) {}
+                } else {
+                    document.documentElement.setAttribute('data-theme','dark');
+                    try { localStorage.setItem('theme','dark'); } catch(_) {}
+                }
+            }
+            document.body.addEventListener('click', (e) => {
+                if (e.target.closest('#theme-toggle') || e.target.closest('#theme-toggle-mobile')) {
+                    e.preventDefault(); toggleTheme();
+                }
+            });
+            } catch (error) {
+                console.error("خطأ في إعداد Firebase:", error);
+                window.appState.errorMessage = `خطأ في الاتصال: ${error.message}. يُرجى التأكد من تفعيل "Anonymous Sign-in" في إعدادات التوثيق.`;
+                window.appState.isAuthReady = true;
+                renderApp();
+            }
+        }
+
+        // 2. المستمعين للبيانات في الوقت الفعلي
+        function startListeners() {
+            if (!db || !window.appState.isAuthReady) return;
+            if (window._listenersStarted) return;
+            window._listenersStarted = true;
+
+            onSnapshot(collection(db, getCollectionPath('drivers')), (snapshot) => {
+                window.appState.drivers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderApp();
+            }, (error) => console.error("خطأ في جلب السائقين:", error));
+
+            onSnapshot(collection(db, getCollectionPath('trips')), (snapshot) => {
+                window.appState.trips = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderApp();
+            }, (error) => console.error("خطأ في جلب الرحلات:", error));
+        }
+
+        // وظائف تسجيل الدخول والخروج
+        // توليد SHA-256 لتمثيل كلمة المرور بصورة آمنة
+        async function hashPassword(str) {
+            const enc = new TextEncoder();
+            const buf = await crypto.subtle.digest('SHA-256', enc.encode(str));
+            const arr = Array.from(new Uint8Array(buf));
+            return arr.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        async function driverLogin(phoneNumber, password) {
+            if (!db) {
+                window.appState.errorMessage = "قاعدة البيانات غير متوفرة.";
+                renderApp();
+                return;
+            }
+
+            // توحيد رقم الهاتف: تحويل إلى E.164 ثم أرقام فقط للمطابقة في Firestore
+            const e164 = toE164(phoneNumber);
+            const digitsOnly = e164.replace(/\D/g, '');
+            
+            if (!digitsOnly || digitsOnly.length < 10) {
+                window.appState.errorMessage = "رقم الهاتف غير صحيح.";
+                renderApp();
+                return;
+            }
+
+            if (!password || password.length < 4) {
+                window.appState.errorMessage = "كلمة المرور مطلوبة (4 أحرف على الأقل).";
+                renderApp();
+                return;
+            }
+
+            window.appState.errorMessage = '';
+            try {
+                const driversRef = collection(db, getCollectionPath('drivers'));
+                // 1) أرقام فقط
+                let snap = await getDocs(query(driversRef, where('phoneNumber', '==', digitsOnly)));
+                // 2) +E.164 قديم
+                if (snap.empty) {
+                    snap = await getDocs(query(driversRef, where('phoneNumber', '==', e164)));
+                }
+                // 3) محلي يبدأ بـ 0 قديم
+                if (snap.empty && digitsOnly.startsWith('962')) {
+                    const local = '0' + digitsOnly.slice(3);
+                    snap = await getDocs(query(driversRef, where('phoneNumber', '==', local)));
+                }
+
+                if (snap.empty) {
+                    window.appState.errorMessage = "رقم الهاتف غير مسجل.";
+                    window.appState.currentDriver = null;
+                } else {
+                    const docSnap = snap.docs[0];
+                    const driverData = { id: docSnap.id, ...docSnap.data() };
+                    // هجرة لتوحيد الرقم على الأرقام فقط
+                    try { if (driverData.phoneNumber !== digitsOnly) await updateDoc(doc(db, getCollectionPath('drivers'), driverData.id), { phoneNumber: digitsOnly }); } catch(_) {}
+
+                    // إذا لم يتم تعيين كلمة مرور بعد، إجبار OTP أولاً
+                    if (!driverData.password && !driverData.passwordHash) {
+                        window.appState.currentDriver = driverData;
+                        window.appState.requireSetPassword = true;
+                        window.appState.errorMessage = "الرجاء تسجيل الدخول عبر OTP أولاً لتعيين كلمة مرور.";
+                    } else {
+                        let valid = false;
+                        if (driverData.passwordHash) {
+                            const hash = await hashPassword(password);
+                            valid = hash === driverData.passwordHash;
+                        } else if (driverData.password) {
+                            valid = driverData.password === password;
+                        }
+                        if (valid) {
+                            window.appState.currentDriver = driverData;
+                            window.appState.view = 'driver-dashboard';
+                            const phoneEl = document.getElementById('driver-phone-input');
+                            const passEl = document.getElementById('driver-password-input');
+                            if (phoneEl) phoneEl.value = '';
+                            if (passEl) passEl.value = '';
+                        } else {
+                            window.appState.errorMessage = "كلمة المرور غير صحيحة.";
+                            window.appState.currentDriver = null;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Driver Login Error:", e);
+                if (e.code === 'permission-denied') {
+                    window.appState.errorMessage = 'خطأ صلاحيات قاعدة البيانات. تحقق من قواعد Firestore.';
+                } else {
+                    window.appState.errorMessage = `حدث خطأ أثناء محاولة تسجيل الدخول: ${e.message}`;
+                }
+            }
+            renderApp();
+        }
+
+        function driverLogout() {
+            window.appState.currentDriver = null;
+            window.appState.view = 'driver-login';
+            renderApp();
+        }
+
+        // إعداد رمز البلد الافتراضي (عدّل حسب بلدك)
+        const DEFAULT_COUNTRY_CODE = '+962'; // مثال الأردن: +962
+
+        function toE164(raw) {
+            if (!raw) return '';
+            let v = ('' + raw).trim();
+            // إزالة المسافات والرموز الغير ضرورية
+            v = v.replace(/\s+/g, '');
+            // إذا كان يبدأ بـ + نفترض أنه E.164
+            if (v.startsWith('+')) return v;
+            // لو يبدأ بـ 00 استبدلها بـ +
+            if (v.startsWith('00')) return '+' + v.slice(2);
+            // لو يبدأ بـ 0 نفترض رقم محلي ونضيف كود البلد الافتراضي
+            if (v.startsWith('0') && DEFAULT_COUNTRY_CODE) {
+                return DEFAULT_COUNTRY_CODE + v.slice(1);
+            }
+            // خلاف ذلك، أضف + كبادئة
+            return '+' + v;
+        }
+
+        // OTP: تهيئة reCAPTCHA مرة واحدة لكل جلسة
+        let _otpRecaptcha;
+        function ensureRecaptcha() {
+            if (_otpRecaptcha) return _otpRecaptcha;
+            try {
+                _otpRecaptcha = new RecaptchaVerifier(auth, 'recaptcha-container', {
+                    size: 'invisible'
+                });
+            } catch(e) {
+                console.warn('reCAPTCHA init warning:', e);
+                // fallback visible if needed
+                try {
+                    _otpRecaptcha = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'normal' });
+                } catch(_) {}
+            }
+            return _otpRecaptcha;
+        }
+
+        // OTP: إرسال الرمز
+        async function sendDriverOtp(rawPhone) {
+            try {
+                window.appState.otpError = '';
+                const e164 = toE164(rawPhone);
+                const cleanPhoneNumber = e164.replace(/\s+/g, '').replace(/[^\d+]/g, '');
+                if (!cleanPhoneNumber || cleanPhoneNumber.length < 10 || !cleanPhoneNumber.startsWith('+')) {
+                    window.appState.otpError = 'رقم الهاتف غير صحيح.';
+                    renderApp();
+                    return;
+                }
+                const verifier = ensureRecaptcha();
+                const fullPhone = cleanPhoneNumber; // بالفعل بصيغة E.164
+                const confirmation = await signInWithPhoneNumber(auth, fullPhone, verifier);
+                window._driverOtpConfirmation = confirmation;
+                window.appState.otpPhase = 'code_sent';
+                alertUser('تم إرسال رمز التحقق عبر SMS.');
+                renderApp();
+            } catch (e) {
+                console.error('OTP send error:', e);
+                if (e.code === 'auth/too-many-requests') {
+                    window.appState.otpError = 'طلبات كثيرة جداً. الرجاء المحاولة لاحقاً.';
+                } else {
+                    window.appState.otpError = e.message || 'فشل إرسال الرمز.';
+                }
+                renderApp();
+            }
+        }
+
+        // OTP: التحقق من الرمز وربط السائق
+        async function verifyDriverOtp(code) {
+            try {
+                window.appState.otpError = '';
+                const confirmation = window._driverOtpConfirmation;
+                if (!confirmation) {
+                    window.appState.otpError = 'أرسل الرمز أولاً.';
+                    renderApp();
+                    return;
+                }
+                const cred = await confirmation.confirm(code);
+                // تم تسجيل الدخول بحساب هاتف
+                const phone = cred.user.phoneNumber || '';
+                const normalized = phone.replace(/\s+/g, '').replace(/[^\d]/g, '');
+                const driversRef = collection(db, getCollectionPath('drivers'));
+                // 1) المحاولة الأساسية: أرقام فقط
+                let snap = await getDocs(query(driversRef, where('phoneNumber', '==', normalized)));
+                // 2) حاول بصيغة +E.164 (للبيانات القديمة)
+                if (snap.empty) {
+                    const e164 = toE164(phone);
+                    snap = await getDocs(query(driversRef, where('phoneNumber', '==', e164)));
+                }
+                // 3) حاول بصيغة محلية تبدأ بـ 0 (للبيانات القديمة)
+                if (snap.empty && normalized.startsWith('962')) {
+                    const local = '0' + normalized.slice(3);
+                    snap = await getDocs(query(driversRef, where('phoneNumber', '==', local)));
+                }
+                if (snap.empty) {
+                    window.appState.otpError = 'لا يوجد سائق مسجل بهذا الرقم.';
+                } else {
+                    const docSnap = snap.docs[0];
+                    const driver = { id: docSnap.id, ...docSnap.data() };
+                    // هجرة تلقائية: حفظ الهاتف بصيغة أرقام فقط للمستقبل
+                    try { await updateDoc(doc(db, getCollectionPath('drivers'), driver.id), { phoneNumber: normalized }); } catch(_) {}
+                    driver.phoneNumber = normalized;
+                    window.appState.currentDriver = driver;
+                    window.appState.otpPhase = 'idle';
+                    // إذا لا توجد كلمة مرور محفوظة/مشفرة، فرض إنشاء كلمة مرور
+                    if (!driver.password && !driver.passwordHash) {
+                        window.appState.requireSetPassword = true;
+                        window.appState.view = 'driver-login';
+                    } else {
+                        window.appState.requireSetPassword = false;
+                        window.appState.view = 'driver-dashboard';
+                    }
+                }
+            } catch (e) {
+                console.error('OTP verify error:', e);
+                window.appState.otpError = e.message || 'فشل التحقق من الرمز.';
+            }
+            renderApp();
+        }
+
+        // تعيين كلمة المرور لأول مرة بعد OTP
+        async function setDriverPasswordFirstTime(newPassword) {
+            try {
+                window.appState.setPasswordError = '';
+                if (!window.appState.currentDriver) {
+                    window.appState.setPasswordError = 'لا يوجد سائق محدد.';
+                    renderApp();
+                    return;
+                }
+                if (!newPassword || newPassword.length < 4) {
+                    window.appState.setPasswordError = 'كلمة المرور يجب أن تكون 4 أحرف على الأقل.';
+                    renderApp();
+                    return;
+                }
+                const driverId = window.appState.currentDriver.id;
+                const hash = await hashPassword(newPassword);
+                await updateDoc(doc(db, getCollectionPath('drivers'), driverId), {
+                    passwordHash: hash,
+                    password: deleteField(),
+                    password_set_at: new Date().toISOString()
+                });
+                // تحديث الذاكرة المحلية
+                window.appState.currentDriver.passwordHash = hash;
+                delete window.appState.currentDriver.password;
+                window.appState.requireSetPassword = false;
+                alertUser('تم تعيين كلمة المرور بنجاح.');
+                window.appState.view = 'driver-dashboard';
+            } catch (e) {
+                console.error('Set password error:', e);
+                window.appState.setPasswordError = e.message || 'فشل تعيين كلمة المرور.';
+            }
+            renderApp();
+        }
+
+        // إرسال OTP لإعادة تعيين كلمة المرور
+        async function sendResetOtp(rawPhone) {
+            try {
+                window.appState.resetOtpError = '';
+                const e164 = toE164(rawPhone);
+                const cleanPhoneNumber = e164.replace(/\s+/g, '').replace(/[^\d+]/g, '');
+                if (!cleanPhoneNumber || cleanPhoneNumber.length < 10 || !cleanPhoneNumber.startsWith('+')) {
+                    window.appState.resetOtpError = 'رقم الهاتف غير صحيح.';
+                    renderApp();
+                    return;
+                }
+                const normalized = cleanPhoneNumber.replace(/\D/g,'');
+                // تأكد أن السائق موجود قبل الإرسال
+                const q = query(collection(db, getCollectionPath('drivers')), where('phoneNumber', '==', normalized));
+                const snap = await getDocs(q);
+                if (snap.empty) {
+                    window.appState.resetOtpError = 'لا يوجد سائق مسجل بهذا الرقم.';
+                    renderApp();
+                    return;
+                }
+                const verifier = ensureRecaptcha();
+                const confirmation = await signInWithPhoneNumber(auth, cleanPhoneNumber, verifier);
+                window._driverResetOtpConfirmation = confirmation;
+                window.appState.resetOtpPhase = 'code_sent';
+                window.appState._resetPhoneNormalized = normalized;
+                alertUser('تم إرسال رمز التحقق لإعادة التعيين.');
+                renderApp();
+            } catch (e) {
+                console.error('Reset OTP send error:', e);
+                if (e.code === 'auth/too-many-requests') {
+                    window.appState.resetOtpError = 'طلبات كثيرة جداً. الرجاء المحاولة لاحقاً.';
+                } else {
+                    window.appState.resetOtpError = e.message || 'فشل إرسال الرمز.';
+                }
+                renderApp();
+            }
+        }
+
+        // التحقق من OTP وتعيين كلمة مرور جديدة
+        async function verifyResetOtpAndSetPassword(code, newPassword) {
+            try {
+                window.appState.resetOtpError = '';
+                if (!code) {
+                    window.appState.resetOtpError = 'أدخل الرمز.';
+                    renderApp();
+                    return;
+                }
+                if (!newPassword || newPassword.length < 4) {
+                    window.appState.resetOtpError = 'كلمة المرور يجب أن تكون 4 أحرف على الأقل.';
+                    renderApp();
+                    return;
+                }
+                const confirmation = window._driverResetOtpConfirmation;
+                if (!confirmation) {
+                    window.appState.resetOtpError = 'أرسل الرمز أولاً.';
+                    renderApp();
+                    return;
+                }
+                await confirmation.confirm(code);
+                // العثور على السائق وتعيين كلمة المرور
+                const normalized = window.appState._resetPhoneNormalized;
+                const q = query(collection(db, getCollectionPath('drivers')), where('phoneNumber', '==', normalized));
+                const snap = await getDocs(q);
+                if (snap.empty) {
+                    window.appState.resetOtpError = 'لا يوجد سائق مسجل بهذا الرقم.';
+                    renderApp();
+                    return;
+                }
+                const driverId = snap.docs[0].id;
+                const hash = await hashPassword(newPassword);
+                await updateDoc(doc(db, getCollectionPath('drivers'), driverId), {
+                    passwordHash: hash,
+                    password: deleteField(),
+                    password_reset_at: new Date().toISOString()
+                });
+                alertUser('تم إعادة تعيين كلمة المرور بنجاح. بإمكانك تسجيل الدخول الآن.');
+                // إعادة تعيين حالة إعادة التعيين
+                window.appState.resetPasswordMode = false;
+                window.appState.resetOtpPhase = 'idle';
+                window.appState._resetPhoneNormalized = '';
+            } catch (e) {
+                console.error('Reset OTP verify error:', e);
+                window.appState.resetOtpError = e.message || 'فشل التحقق أو التعيين.';
+            }
+            renderApp();
+        }
+
+        // تحديث هاتف السائق من لوحة السائق
+        async function driverUpdatePhone(newPhoneRaw) {
+            try {
+                if (!window.appState.currentDriver) return;
+                const e164 = toE164(newPhoneRaw);
+                const digitsOnly = e164.replace(/\D/g,'');
+                if (!digitsOnly || digitsOnly.length < 10) {
+                    alertUser('رقم الهاتف غير صحيح.');
+                    return;
+                }
+                const driverId = window.appState.currentDriver.id;
+                await updateDoc(doc(db, getCollectionPath('drivers'), driverId), { phoneNumber: digitsOnly });
+                window.appState.currentDriver.phoneNumber = digitsOnly;
+                alertUser('تم تحديث رقم الهاتف.');
+                renderApp();
+            } catch (e) {
+                console.error('Update phone error:', e);
+                alertUser(e.message || 'فشل تحديث رقم الهاتف');
+            }
+        }
+
+        // رفع صورة السائق وتحديثها
+        async function driverUpdateImage(file) {
+            try {
+                if (!window.appState.currentDriver) return;
+                if (!file || file.size === 0) { alertUser('اختر صورة صحيحة'); return; }
+                const driverId = window.appState.currentDriver.id;
+                if (storage) {
+                    const imageRef = ref(storage, `drivers/${driverId}/${Date.now()}_${file.name}`);
+                    await uploadBytes(imageRef, file);
+                    const url = await getDownloadURL(imageRef);
+                    await updateDoc(doc(db, getCollectionPath('drivers'), driverId), { image: url });
+                    window.appState.currentDriver.image = url;
+                } else {
+                    // بديل: حفظ Base64
+                    const toBase64 = (f) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); });
+                    const b64 = await toBase64(file);
+                    await updateDoc(doc(db, getCollectionPath('drivers'), driverId), { image: b64 });
+                    window.appState.currentDriver.image = b64;
+                }
+                alertUser('تم تحديث الصورة.');
+                renderApp();
+            } catch (e) {
+                console.error('Update image error:', e);
+                alertUser(e.message || 'فشل تحديث الصورة');
+            }
+        }
+
+        // تغيير كلمة المرور من لوحة السائق
+        async function driverChangePassword(currentPwd, newPwd) {
+            try {
+                if (!window.appState.currentDriver) return;
+                if (!newPwd || newPwd.length < 4) { alertUser('كلمة المرور الجديدة قصيرة جداً'); return; }
+                const d = window.appState.currentDriver;
+                let ok = false;
+                if (d.passwordHash) {
+                    const curHash = await hashPassword(currentPwd || '');
+                    ok = curHash === d.passwordHash;
+                } else if (d.password) {
+                    ok = (currentPwd || '') === d.password;
+                }
+                if (!ok) { alertUser('كلمة المرور الحالية غير صحيحة'); return; }
+                const hash = await hashPassword(newPwd);
+                await updateDoc(doc(db, getCollectionPath('drivers'), d.id), { passwordHash: hash, password: deleteField(), password_reset_at: new Date().toISOString() });
+                d.passwordHash = hash; delete d.password;
+                alertUser('تم تغيير كلمة المرور بنجاح');
+                renderApp();
+            } catch (e) {
+                console.error('Change password error:', e);
+                alertUser(e.message || 'فشل تغيير كلمة المرور');
+            }
+        }
+        
+        async function adminLogin(email, password) {
+            window.appState.adminLoginError = ''; 
+            window.appState.errorMessage = '';
+            renderApp(); 
+
+            try {
+                if (!auth) throw new Error("Firebase Auth not initialized.");
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                console.error("Admin Login Error:", error);
+                let errorMessage = 'فشل تسجيل الدخول: تحقق من البريد الإلكتروني وكلمة المرور.';
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                    errorMessage = 'بيانات تسجيل الدخول غير صحيحة.';
+                } 
+                window.appState.adminLoginError = errorMessage;
+            }
+            renderApp();
+        }
+
+        async function adminLogout() {
+            try {
+                await signOut(auth);
+            } catch (error) {
+                console.error("Error signing out admin:", error);
+            }
+            window.appState.isAdmin = false;
+            window.appState.view = 'driver-login';
+            renderApp();
+        }
+
+        // وظائف العرض
+        function renderApp() {
+            const container = document.getElementById('app-container');
+            let content = '';
+
+            if (window.appState.dbError && app) {
+                content = renderDbError(window.appState.dbError);
+            } 
+            else if (!window.appState.isAuthReady) {
+                 content = renderLoadingScreen();
+            }
+            else {
+                 switch (window.appState.view) {
+                    case 'admin':
+                        content = window.renderEnhancedAdminPanel();
+                        break;
+                    case 'driver-management':
+                        content = window.renderDriverManagement();
+                        break;
+                    case 'trips-management':
+                        content = window.renderTripsManagement ? window.renderTripsManagement() : '';
+                        break;
+                    case 'admin-login':
+                        content = renderAdminLoginPanel();
+                        break;
+                    case 'driver-login':
+                        content = renderDriverLoginPanel();
+                        break;
+                    case 'driver-dashboard':
+                        content = renderDriverDashboard();
+                        break;
+                    default:
+                        content = renderDriverLoginPanel(); 
+                }
+            }
+            
+            container.innerHTML = content;
+            attachEventListeners();
+            // إخفاء الشريط العلوي الثابت داخل صفحات لوحة المشرف لتجنب التكرار
+            const staticNav = document.getElementById('top-static-nav');
+            const adminViews = ['admin','driver-management','trips-management'];
+            if (staticNav) {
+                if (adminViews.includes(window.appState.view)) {
+                    staticNav.style.display = 'none';
+                } else {
+                    staticNav.style.display = '';
+                }
+            }
+            
+            // إنشاء الرسوم البيانية إذا كانت الصفحة الرئيسية للمشرف
+            if (window.appState.view === 'admin' && window.createCharts) {
+                setTimeout(() => window.createCharts(), 100);
+            }
+        }
+
+        function setAppView(view) {
+            window.appState.errorMessage = '';
+            window.appState.adminLoginError = '';
+            
+            if (view === 'admin-check') {
+                if(window.appState.isAdmin && auth.currentUser && auth.currentUser.email) {
+                    window.appState.view = 'admin';
+                } else {
+                    window.appState.view = 'admin-login';
+                }
+            } else {
+                window.appState.view = view;
+            }
+            renderApp();
+        }
+
+        function renderLoadingScreen() {
+             return `
+                <div class="flex justify-center items-center min-h-screen bg-gray-100">
+                    <div class="text-center p-8 bg-white rounded-xl shadow-lg">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-700 mx-auto mb-4"></div>
+                        <p class="text-lg font-semibold text-gray-700">جاري تحميل البيانات والتوثيق...</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderDbError(error) {
+            return `
+                <div class="flex items-center justify-center min-h-screen bg-red-50 p-4">
+                    <div class="w-full max-w-xl card bg-white p-8 rounded-xl shadow-2xl space-y-6 text-center border-t-8 border-red-500">
+                        <h2 class="text-3xl font-extrabold text-red-700">خطأ في قاعدة البيانات</h2>
+                        <p class="text-gray-700 text-lg leading-relaxed">${error}</p>
+                        <button onclick="window.setAppView('driver-login')" class="btn-primary text-white p-3 rounded-lg font-semibold shadow-md text-lg mt-4">العودة ومحاولة جديدة</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAdminLoginPanel() {
+            if (window.appState.dbError) {
+                return renderDbError(window.appState.dbError);
+            }
+            const { adminLoginError } = window.appState;
+            return `
+                <div class="flex items-center justify-center min-h-screen bg-gray-100 p-4">
+                    <div class="w-full max-w-sm card bg-white p-8 rounded-xl shadow-2xl space-y-6">
+                        <div class="flex justify-center mb-4">
+                            <img src="81077e1b-876b-43d3-913b-d8a24361fefb.jpg" alt="On Time Ride Logo" class="w-32 h-auto rounded-lg">
+                        </div>
+                        <h2 class="text-3xl font-extrabold text-gray-800 text-center">دخول المشرف</h2>
+                        ${adminLoginError ? `<div class="p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">${adminLoginError}</div>` : ''}
+                        
+                        <form id="admin-login-form" class="space-y-4">
+                            <input type="email" name="email" placeholder="البريد الإلكتروني" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500">
+                            <input type="password" name="password" placeholder="كلمة المرور" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500">
+                            <button type="submit" class="btn-primary w-full text-white p-3 rounded-lg font-semibold shadow-md text-lg">تسجيل الدخول</button>
+                        </form>
+                        <button onclick="window.setAppView('driver-login')" class="w-full text-sm text-green-600 hover:text-green-800 transition duration-150">العودة إلى لوحة السائقين</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderDriverLoginPanel() {
+            if (window.appState.dbError) {
+                return renderDbError(window.appState.dbError);
+            }
+
+            return `
+                <div class="relative min-h-screen driver-panel-bg p-4">
+                    <div class="absolute inset-0 opacity-20 pointer-events-none">
+                        <div class="w-40 h-40 bg-white rounded-full blur-3xl absolute -top-10 -left-10"></div>
+                        <div class="w-56 h-56 bg-white rounded-full blur-3xl absolute bottom-10 right-10"></div>
+                    </div>
+                    <div class="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                        <div class="hidden md:block text-white/95 space-y-4">
+                            <img src="81077e1b-876b-43d3-913b-d8a24361fefb.jpg" class="w-28 rounded-xl shadow-lg border border-white/30" alt="Logo" />
+                            <h2 class="text-4xl font-extrabold leading-tight">أهلاً بك في نظام السائقين</h2>
+                            <p class="text-white/80">سجّل دخولك لإدارة رصيدك ومتابعة رحلاتك بسهولة.</p>
+                            <ul class="space-y-1 text-white/80 text-sm list-disc pr-5">
+                                <li>أدخل رقم الهاتف كما تعودت (07XXXXXXXX) أو بصيغة +9627XXXXXXXX</li>
+                                <li>يمكنك استخدام كلمة المرور أو رمز OTP</li>
+                            </ul>
+                        </div>
+                        <div class="w-full card bg-white/95 backdrop-blur p-6 md:p-8 rounded-2xl shadow-2xl space-y-6">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg bg-green-100 text-green-700 flex items-center justify-center shadow">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25l8.955 3.982a.75.75 0 00.59 0L20.75 8.25M3 8.954v6.296c0 .586.34 1.12.876 1.366l7.5 3.438a1.5 1.5 0 001.248 0l7.5-3.438c.536-.246.876-.78.876-1.366V8.954M12 12.75v8.25" /></svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-2xl font-extrabold text-gray-800">تسجيل دخول السائق</h3>
+                                    <p class="text-gray-500 text-sm">أدخل بياناتك لتسجيل الدخول</p>
+                                </div>
+                            </div>
+
+                            ${window.appState.errorMessage ? `<div class=\"p-3 bg-red-50 border border-red-300 text-red-700 rounded-lg text-sm\">${window.appState.errorMessage}</div>` : ''}
+
+                            <form id="driver-login-form" class="space-y-4 ${window.appState.requireSetPassword ? 'hidden' : ''}">
+                                <label class="block text-sm font-medium text-gray-700">رقم الهاتف</label>
+                                <div class="relative">
+                                    <span class="absolute inset-y-0 right-3 flex items-center text-gray-400">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 3a1 1 0 011-1h1.5A1.5 1.5 0 016 3.5V5a1 1 0 01-1 1H3v8h2a1 1 0 011 1v1.5A1.5 1.5 0 014.5 18H3a1 1 0 01-1-1V3zM7 6h10a1 1 0 011 1v6a1 1 0 01-1 1H7V6z"/></svg>
+                                    </span>
+                                    <input autocomplete="tel" inputmode="tel" type="tel" id="driver-phone-input" name="phoneNumber" placeholder="أدخل رقم 079XXXXXXXX أو +9627XXXXXXXX" title="أدخل رقم محلي 079XXXXXXXX أو دولي يبدأ بـ +" required class="w-full pl-3 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                </div>
+                                <p class="text-xs text-gray-500">سيتم تحويل الرقم تلقائياً لصيغة دولية (+962) عند الحاجة.</p>
+
+                                <label class="block text-sm font-medium text-gray-700">كلمة المرور</label>
+                                <div class="relative">
+                                    <input autocomplete="current-password" type="password" id="driver-password-input" name="password" placeholder="********" required class="w-full pl-3 pr-24 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                    <button type="button" id="toggle-pass-visibility" class="absolute inset-y-0 left-2 text-gray-500 hover:text-gray-700 text-sm">إظهار</button>
+                                </div>
+                                <button type="submit" class="btn-primary w-full text-white py-3 rounded-lg font-semibold shadow-md text-lg">دخول</button>
+                            </form>
+
+                            ${window.appState.requireSetPassword ? `
+                            <div class="space-y-3">
+                                <h3 class="text-lg font-bold text-gray-800">تعيين كلمة المرور</h3>
+                                ${window.appState.setPasswordError ? `<div class=\\\"p-3 bg-red-50 border border-red-300 text-red-700 rounded-lg text-sm\\\">${window.appState.setPasswordError}</div>` : ''}
+                                <input type="password" id="new-password-input" placeholder="أدخل كلمة مرور جديدة" class="w-full p-3 border rounded">
+                                <button id="set-password-btn" class="w-full bg-green-600 hover:bg-green-700 text-white p-3 rounded">حفظ ومتابعة</button>
+                            </div>
+                            ` : ''}
+
+                            <div class="border-t pt-4 ${window.appState.requireSetPassword ? 'hidden' : ''}">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h3 class="text-lg font-bold text-gray-800">أو سجّل بواسطة رمز OTP</h3>
+                                    <span class="text-xs text-gray-500">مفيد عند نسيان كلمة المرور</span>
+                                </div>
+                                ${window.appState.otpError ? `<div class=\"p-3 bg-red-50 border border-red-300 text-red-700 rounded-lg text-sm mb-2\">${window.appState.otpError}</div>` : ''}
+                                <div class="space-y-3">
+                                    <input type="tel" id="otp-phone-input" placeholder="أدخل رقم 079XXXXXXXX أو +9627XXXXXXXX" title="أدخل رقم محلي 079XXXXXXXX أو دولي يبدأ بـ +" class="w-full p-3 border rounded">
+                                    <div id="recaptcha-container" class="mb-2"></div>
+                                    <button id="send-otp-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white p-3 rounded">إرسال الرمز</button>
+                                    ${window.appState.otpPhase === 'code_sent' ? `
+                                        <input type="text" id="otp-code-input" placeholder="أدخل رمز التحقق" class="w-full p-3 border rounded">
+                                        <button id="verify-otp-btn" class="w-full bg-green-600 hover:bg-green-700 text-white p-3 rounded">تحقق وتسجيل الدخول</button>
+                                    ` : ''}
+                                </div>
+                            </div>
+
+                            <div class="border-t pt-4 ${window.appState.requireSetPassword ? 'hidden' : ''}">
+                                <a href="restpassw.html" class="block w-full text-center text-sm text-blue-700 hover:text-blue-900 underline">هل نسيت كلمة المرور؟</a>
+                            </div>
+
+                            <button onclick="window.setAppView('admin-check')" class="w-full text-sm text-green-600 hover:text-green-800 transition duration-150">تسجيل دخول المشرف</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderDriverDashboard() {
+            if (window.appState.dbError) {
+                return renderDbError(window.appState.dbError);
+            }
+            const { currentDriver, trips } = window.appState;
+            if (!currentDriver) return '';
+
+            const driverTrips = trips.filter(t => t.driverId === currentDriver.id)
+                .sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded));
+            
+            const typeMap = { 'airport': 'مطار', 'families': 'عائلات', 'passengers': 'ركاب عاديين', 'vip': 'VIP' };
+
+            const driverTripsList = driverTrips.map(trip => {
+                const tripTypeDisplay = typeMap[trip.tripType] || 'عام';
+                const commissionAmount = trip.commissionAmount !== undefined ? trip.commissionAmount.toFixed(2) : 'N/A';
+
+                return `
+                    <div class="bg-white p-4 rounded-xl shadow-sm mb-3 border-r-4 border-red-500">
+                        <div class="flex justify-between items-center mb-1">
+                            <p class="font-bold text-gray-800">رحلة ${tripTypeDisplay} بتاريخ: ${new Date(trip.dateAdded).toLocaleDateString('ar-EG')}</p>
+                            <span class="text-lg font-extrabold text-red-600">- ${commissionAmount} دينار</span>
+                        </div>
+                        <p class="text-sm text-gray-500">السعر الإجمالي للرحلة: ${trip.totalPrice.toFixed(2)} دينار</p>
+                    </div>
+                `;
+            }).join('');
+            
+            const balanceColor = currentDriver.balance >= 0 ? 'text-green-700' : 'text-red-700';
+            const driverImage = currentDriver.image || '81077e1b-876b-43d3-913b-d8a24361fefb.jpg';
+
+            return `
+                <div class="min-h-screen driver-panel-bg p-4 md:p-8">
+                    <div class="max-w-4xl mx-auto space-y-6">
+                        <header class="flex justify-between items-center pb-4 border-b border-white/30">
+                            <div class="flex items-center space-x-4 rtl:space-x-reverse">
+                                <img src="${driverImage}" alt="${currentDriver.name}" class="w-16 h-16 rounded-full object-cover border-4 border-white shadow-lg">
+                                <div>
+                                    <h2 class="text-2xl font-bold text-white">مرحباً بك، ${currentDriver.name}</h2>
+                                    <p class="text-white/80 text-sm">هاتف: ${currentDriver.phoneNumber}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button id="open-settings" class="bg-white/20 hover:bg-white/30 text-white text-sm py-2 px-4 rounded-lg font-semibold transition shadow-md">إعدادات الحساب</button>
+                                <button onclick="window.driverLogout()" class="bg-red-500 hover:bg-red-600 text-white text-sm py-2 px-4 rounded-lg font-semibold transition shadow-md">خروج</button>
+                            </div>
+                        </header>
+
+                        <div id="driver-settings" class="hidden card bg-white p-6 rounded-xl shadow-2xl">
+                            <h3 class="text-xl font-bold text-gray-800 mb-4">إعدادات الحساب</h3>
+                            <div class="grid md:grid-cols-2 gap-6">
+                                <form id="driver-phone-form" class="space-y-3">
+                                    <h4 class="font-semibold text-gray-700">تغيير رقم الهاتف</h4>
+                                    <input type="tel" id="driver-new-phone" placeholder="رقم الهاتف" class="w-full p-3 border rounded" value="${currentDriver.phoneNumber}">
+                                    <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">تحديث الرقم</button>
+                                </form>
+                                <form id="driver-image-form" class="space-y-3">
+                                    <h4 class="font-semibold text-gray-700">تغيير الصورة</h4>
+                                    <input type="file" id="driver-new-image" accept="image/*" class="w-full p-3 border rounded bg-gray-50">
+                                    <button class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded">تحديث الصورة</button>
+                                </form>
+                                <form id="driver-password-form" class="space-y-3 md:col-span-2">
+                                    <h4 class="font-semibold text-gray-700">تغيير كلمة المرور</h4>
+                                    <div class="grid md:grid-cols-3 gap-3">
+                                        <input type="password" id="driver-current-password" placeholder="كلمة المرور الحالية" class="w-full p-3 border rounded">
+                                        <input type="password" id="driver-new-password" placeholder="كلمة مرور جديدة" class="w-full p-3 border rounded">
+                                        <button class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">تحديث كلمة المرور</button>
+                                    </div>
+                                    <p class="text-sm text-gray-500">إذا نسيت كلمة المرور، استخدم خيار استرجاع كلمة المرور في شاشة تسجيل الدخول.</p>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="card bg-white p-6 rounded-xl text-center shadow-2xl">
+                            <p class="text-xl font-semibold text-gray-600 mb-2">رصيدك المستحق الحالي</p>
+                            <div class="flex justify-center items-end">
+                                <span class="text-6xl font-extrabold ${balanceColor}">${currentDriver.balance.toFixed(2)}</span>
+                                <span class="text-2xl font-bold text-gray-600 mr-2">دينار</span>
+                            </div>
+                            <p class="text-sm text-gray-400 mt-2">عرض الرصيد بتاريخ: ${new Date().toLocaleDateString('ar-EG')}</p>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <h3 class="text-xl font-bold text-white border-b pb-2">سجل رحلاتك (${driverTrips.length} رحلة)</h3>
+                            ${driverTripsList || '<p class="text-white/80 p-4 bg-white/10 rounded-lg text-center">لم يتم تسجيل رحلات لك بعد.</p>'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function attachEventListeners() {
+            // نموذج إضافة/تعديل السائق
+            const driverForm = document.getElementById('driver-form');
+            if (driverForm) {
+                driverForm.onsubmit = (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(driverForm);
+                    const driverData = {
+                        name: formData.get('name'),
+                        phoneNumber: formData.get('phoneNumber'),
+                        balance: formData.get('balance'),
+                        imageFile: formData.get('imageFile')
+                    };
+                    
+                    if (window.appState.editingDriver) {
+                        window.updateDriver(window.appState.editingDriver.id, driverData);
+                    } else {
+                        driverData.initialBalance = driverData.balance;
+                        window.addDriver(driverData);
+                    }
+                };
+            }
+
+            // نموذج إضافة الرحلة
+            const tripForm = document.getElementById('add-trip-form');
+            if (tripForm) {
+                tripForm.onsubmit = (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(tripForm);
+                    window.addTripAndUpdateBalance(Object.fromEntries(formData.entries()));
+                };
+            }
+            
+            // نموذج تسجيل دخول السائق
+            const loginForm = document.getElementById('driver-login-form');
+            if (loginForm) {
+                loginForm.onsubmit = (e) => {
+                    e.preventDefault();
+                    let phoneNumber = document.getElementById('driver-phone-input').value.trim();
+                    const password = document.getElementById('driver-password-input').value;
+                    // السماح برقم محلي 079XXXXXXXX أو دولي +9627XXXXXXXX مع طول من 10 إلى 15 رقمًا
+                    const cleaned = phoneNumber.replace(/\s+/g, '');
+                    const isPlus = cleaned.startsWith('+');
+                    const digits = cleaned.replace(/[^\d]/g, '');
+                    if (digits.length < 10 || digits.length > 15) {
+                        window.appState.errorMessage = 'أدخل رقم صحيح: لا يقل عن 10 أرقام ولا يزيد عن 15.';
+                        renderApp();
+                        return;
+                    }
+                    // تحويل الصيغة المحلية إلى دولية (+962)
+                    if (!isPlus) {
+                        // مثال الأردن: يبدأ بـ 0
+                        if (cleaned.startsWith('0')) {
+                            phoneNumber = '+962' + cleaned.substring(1);
+                        } else {
+                            // إن لم يبدأ بـ 0 نضيف +
+                            phoneNumber = '+' + digits;
+                        }
+                    } else {
+                        phoneNumber = '+' + digits;
+                    }
+                    driverLogin(phoneNumber, password);
+                };
+            }
+            // تبديل ظهور كلمة المرور
+            const togglePass = document.getElementById('toggle-pass-visibility');
+            if (togglePass) {
+                togglePass.onclick = (e) => {
+                    e.preventDefault();
+                    const inp = document.getElementById('driver-password-input');
+                    if (!inp) return;
+                    const isPwd = inp.type === 'password';
+                    inp.type = isPwd ? 'text' : 'password';
+                    togglePass.textContent = isPwd ? 'إخفاء' : 'إظهار';
+                };
+            }
+
+            // نموذج تسجيل دخول المشرف
+            const adminLoginForm = document.getElementById('admin-login-form');
+            if (adminLoginForm) {
+                adminLoginForm.onsubmit = (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(adminLoginForm);
+                    const email = formData.get('email');
+                    const password = formData.get('password');
+                    adminLogin(email, password);
+                };
+            }
+
+            // OTP events
+            const sendOtpBtn = document.getElementById('send-otp-btn');
+            if (sendOtpBtn) {
+                sendOtpBtn.onclick = async (e) => {
+                    e.preventDefault();
+                    let phone = (document.getElementById('otp-phone-input')?.value || '').trim();
+                    // السماح برقم محلي أو دولي ثم تحويله لصيغة دولية قبل الإرسال
+                    let norm = phone.replace(/\s+/g,'');
+                    const digits = norm.replace(/[^\d]/g,'');
+                    if (digits.length < 10 || digits.length > 15) {
+                        window.appState.otpError = 'أدخل رقم صحيح: لا يقل عن 10 أرقام ولا يزيد عن 10.';
+                        renderApp();
+                        return;
+                    }
+                    if (!norm.startsWith('+')) {
+                        if (norm.startsWith('0')) norm = '+962' + norm.substring(1);
+                        else norm = '+' + digits;
+                    } else {
+                        norm = '+' + digits;
+                    }
+                    await sendDriverOtp(norm);
+                };
+            }
+            const verifyOtpBtn = document.getElementById('verify-otp-btn');
+            if (verifyOtpBtn) {
+                verifyOtpBtn.onclick = async (e) => {
+                    e.preventDefault();
+                    const code = (document.getElementById('otp-code-input')?.value || '').trim();
+                    if (!code) { window.appState.otpError = 'أدخل الرمز'; renderApp(); return; }
+                    await verifyDriverOtp(code);
+                };
+            }
+
+            // عناصر التحكم في إدارة السائقين: بحث/تصفية/ترقيم صفحات/تصدير
+            const driverSearch = document.getElementById('driver-search');
+            if (driverSearch) {
+                driverSearch.oninput = (e) => {
+                    const el = e.target;
+                    const value = el.value;
+                    const caret = el.selectionStart;
+                    window.appState.driverSearch = value;
+                    window.appState.driverPage = 1;
+                    // إلغاء أي مؤقت سابق وإعادة الجدولة لمنع إعادة الرسم أثناء الكتابة
+                    clearTimeout(window._driverSearchTimer);
+                    window._driverSearchTimer = setTimeout(() => {
+                        renderApp();
+                        // محاولة استعادة التركيز ومكان المؤشر بعد إعادة الرسم
+                        const el2 = document.getElementById('driver-search');
+                        if (el2) {
+                            el2.focus();
+                            try { el2.setSelectionRange(caret, caret); } catch (_) {}
+                        }
+                    }, 250);
+                };
+            }
+            const driverFilter = document.getElementById('driver-filter');
+            if (driverFilter) {
+                driverFilter.onchange = (e) => {
+                    window.appState.driverFilter = e.target.value;
+                    window.appState.driverPage = 1;
+                    renderApp();
+                };
+            }
+            const prevPage = document.getElementById('prev-page');
+            if (prevPage) {
+                prevPage.onclick = () => {
+                    if (window.appState.driverPage > 1) {
+                        window.appState.driverPage -= 1;
+                        renderApp();
+                    }
+                };
+            }
+            const nextPage = document.getElementById('next-page');
+            if (nextPage) {
+                nextPage.onclick = () => {
+                    // إعادة الحساب عبر المساعد
+                    const meta = window.filterAndPaginateDrivers(window.appState.drivers, window.appState);
+                    if (window.appState.driverPage < meta.totalPages) {
+                        window.appState.driverPage += 1;
+                        renderApp();
+                    }
+                };
+            }
+            const exportDriversMgmt = document.getElementById('export-drivers-mgmt');
+            if (exportDriversMgmt) {
+                exportDriversMgmt.onclick = () => {
+                    const meta = window.filterAndPaginateDrivers(window.appState.drivers, window.appState);
+                    window.exportDriversCSV(meta.list);
+                };
+            }
+
+            // عناصر تحكم التاريخ والتصدير في لوحة المشرف
+            const dateFrom = document.getElementById('date-from');
+            if (dateFrom) {
+                dateFrom.onchange = (e) => {
+                    window.appState.dateFrom = e.target.value;
+                    renderApp();
+                };
+            }
+            const dateTo = document.getElementById('date-to');
+            if (dateTo) {
+                dateTo.onchange = (e) => {
+                    window.appState.dateTo = e.target.value;
+                    renderApp();
+                };
+            }
+            const clearDates = document.getElementById('clear-dates');
+            if (clearDates) {
+                clearDates.onclick = () => {
+                    window.appState.dateFrom = '';
+                    window.appState.dateTo = '';
+                    renderApp();
+                };
+            }
+            const exportTrips = document.getElementById('export-trips');
+            if (exportTrips) {
+                exportTrips.onclick = () => {
+                    const filtered = window.getTripsFilteredByDate(window.appState);
+                    window.exportTripsCSV(filtered);
+                };
+            }
+            const exportDrivers = document.getElementById('export-drivers');
+            if (exportDrivers) {
+                exportDrivers.onclick = () => {
+                    window.exportDriversCSV(window.appState.drivers);
+                };
+            }
+
+            // تفويض حدث لأزرار إضافة الرصيد داخل البطاقات أو الجداول (مع منع النقرات المتكررة)
+            document.body.addEventListener('click', async (ev) => {
+                const btn = ev.target.closest('.credit-btn');
+                if (!btn) return;
+                ev.preventDefault();
+                const driverId = btn.getAttribute('data-driver-id');
+
+                // مجموعة المهام الجارية لكل سائق لمنع التكرار
+                window._creditBusy = window._creditBusy || new Set();
+                if (window._creditBusy.has(driverId)) {
+                    return; // تجاهل الطلبات المتتالية السريعة لنفس السائق
+                }
+
+                const input = document.getElementById(`credit-amount-${driverId}`);
+                let amount = input ? input.value : '';
+                if (!amount) {
+                    amount = prompt('أدخل المبلغ لإضافته إلى رصيد السائق:');
+                }
+                if (!amount) return;
+
+                // حالة مشغول على الزر
+                const originalText = btn.dataset.originalText || btn.textContent;
+                btn.dataset.originalText = originalText;
+                btn.textContent = 'جارٍ الإضافة...';
+                btn.disabled = true;
+                btn.setAttribute('aria-busy', 'true');
+                window._creditBusy.add(driverId);
+                try {
+                    await window.creditDriverBalance(driverId, amount);
+                } finally {
+                    window._creditBusy.delete(driverId);
+                    btn.removeAttribute('aria-busy');
+                    btn.disabled = false;
+                    btn.textContent = btn.dataset.originalText || 'إضافة';
+                    if (input) input.value = '';
+                    renderApp();
+                }
+            });
+
+            // تفعيل روابط شريط التنقل العلوي (تفويض لضمان العمل بعد كل إعادة رسم)
+            document.body.addEventListener('click', (e) => {
+                const link = e.target.closest('.topnav-link');
+                if (!link) return;
+                e.preventDefault();
+                const v = link.getAttribute('data-view');
+                if (v === 'logout') { window.adminLogout && window.adminLogout(); return; }
+                if (v) window.setAppView(v);
+            });
+
+            // الذهاب مباشرة لعرض السائقين ذوي الأرصدة السالبة
+            const gotoNeg = document.getElementById('goto-negative-drivers');
+            if (gotoNeg) {
+                gotoNeg.onclick = (e) => {
+                    e.preventDefault();
+                    window.appState.driverFilter = 'negative';
+                    window.setAppView('driver-management');
+                };
+            }
+
+
+            // إعدادات السائق
+            const openSettings = document.getElementById('open-settings');
+            if (openSettings) {
+                openSettings.onclick = (e) => {
+                    e.preventDefault();
+                    const box = document.getElementById('driver-settings');
+                    if (box) box.classList.toggle('hidden');
+                };
+            }
+            const phoneForm = document.getElementById('driver-phone-form');
+            if (phoneForm) {
+                phoneForm.onsubmit = async (e) => {
+                    e.preventDefault();
+                    const v = (document.getElementById('driver-new-phone')?.value || '').trim();
+                    await driverUpdatePhone(v);
+                };
+            }
+            const imageForm = document.getElementById('driver-image-form');
+            if (imageForm) {
+                imageForm.onsubmit = async (e) => {
+                    e.preventDefault();
+                    const f = document.getElementById('driver-new-image')?.files?.[0];
+                    await driverUpdateImage(f);
+                };
+            }
+            const pwdForm = document.getElementById('driver-password-form');
+            if (pwdForm) {
+                pwdForm.onsubmit = async (e) => {
+                    e.preventDefault();
+                    const cur = (document.getElementById('driver-current-password')?.value || '').trim();
+                    const nw = (document.getElementById('driver-new-password')?.value || '').trim();
+                    await driverChangePassword(cur, nw);
+                };
+            }
+        }
+
+        // تعيين كلمة المرور لأول مرة
+            const setPasswordBtn = document.getElementById('set-password-btn');
+            if (setPasswordBtn) {
+                setPasswordBtn.onclick = async (e) => {
+                    e.preventDefault();
+                    const pwd = (document.getElementById('new-password-input')?.value || '').trim();
+                    await setDriverPasswordFirstTime(pwd);
+                };
+            }
+
+            // إرسال وإكمال استرجاع كلمة المرور عبر OTP
+            const sendResetOtpBtn = document.getElementById('send-reset-otp-btn');
+            if (sendResetOtpBtn) {
+                sendResetOtpBtn.onclick = async (e) => {
+                    e.preventDefault();
+                    const phone = (document.getElementById('reset-phone-input')?.value || '').trim();
+                    await sendResetOtp(phone);
+                };
+            }
+            const verifyResetOtpBtn = document.getElementById('verify-reset-otp-btn');
+            if (verifyResetOtpBtn) {
+                verifyResetOtpBtn.onclick = async (e) => {
+                    e.preventDefault();
+                    const code = (document.getElementById('reset-otp-code-input')?.value || '').trim();
+                    const newPwd = (document.getElementById('reset-new-password-input')?.value || '').trim();
+                    await verifyResetOtpAndSetPassword(code, newPwd);
+                };
+            }
+        
+
+        // تصدير الوظائف للاستخدام العالمي
+        window.onload = function() {
+            // تهيئة الوضع الداكن/الفاتح من التخزين المحلي
+            try {
+                const savedTheme = localStorage.getItem('theme');
+                if (savedTheme === 'dark') {
+                    document.documentElement.setAttribute('data-theme','dark');
+                } else {
+                    document.documentElement.removeAttribute('data-theme');
+                }
+            } catch(_) {}
+            setupFirebase();
+            window.renderApp = renderApp;
+            window.setAppView = setAppView;
+            window.driverLogout = driverLogout;
+            window.adminLogout = adminLogout;
+            window.driverLogin = driverLogin;
+            window.adminLogin = adminLogin;
+        };
+    </script>
+    
+    <!-- تضمين ملفات JavaScript الإضافية -->
+    <script src="js/core/utils.js"></script>
+    <script src="js/core/state.js"></script>
+    <script src="app.js"></script>
+    <script src="ui.js"></script>
+    <script src="js/ui/navbar.js"></script>
+    <script src="js/ui/dashboard.js"></script>
+    <script src="js/ui/drivers.js"></script>
+    <script src="js/ui/trips.js"></script>
+    <script src="js/ui/modals.js"></script>
+</body>
+</html>

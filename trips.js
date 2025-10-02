@@ -8,8 +8,8 @@
     const filteredTrips = window.getTripsFilteredByDate(window.appState);
     return renderAdminShell(`
         ${renderNavbar('trips-management')}
-        <div class="h-14"></div>
-        <div class="max-w-7xl mx-auto p-4 md:p-8 space-y-8">
+        <div style="height: 72px;"></div>
+        <div class="container" style="padding-top: 2rem; padding-bottom: 2rem;">
             <div class="flex justify-between items-center mb-6 border-b pb-3">
                 <h2 class="text-3xl font-extrabold text-gray-900">إدارة الرحلات</h2>
             </div>

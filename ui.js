@@ -67,20 +67,20 @@ function renderEnhancedAdminPanel() {
 
     const { drivers } = window.appState;
     const trips = getTripsFilteredByDate(window.appState);
-    
+
     // حساب الإحصائيات
     const totalDrivers = drivers.length;
     const totalTrips = trips.length;
     const negativeBalanceDrivers = drivers.filter(d => d.balance < 0);
     const totalRevenue = trips.reduce((sum, trip) => sum + (trip.commissionAmount || 0), 0);
-    
+
     // إنشاء بيانات الرسم البياني
     const chartData = createChartData(drivers, trips);
-    
+
     const content = `
         ${renderNavbar('admin')}
-        <div class="h-14"></div>
-        <div class="max-w-7xl mx-auto p-4 md:p-8 space-y-8">
+        <div style="height: 72px;"></div>
+        <div class="container" style="padding-top: 2rem; padding-bottom: 2rem;">
             <!-- Header -->
             <div class="flex justify-between items-center mb-6 border-b pb-3">
                 <h2 class="text-3xl font-extrabold text-gray-900">لوحة تحكم المشرف - On Time Ride</h2>

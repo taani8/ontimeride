@@ -1066,6 +1066,12 @@
             
             container.innerHTML = content;
             attachEventListeners();
+
+            // Initialize mobile menu after rendering navbar
+            if (typeof window.initMobileMenu === 'function') {
+                setTimeout(() => window.initMobileMenu(), 50);
+            }
+
             // إخفاء الشريط العلوي الثابت داخل صفحات لوحة المشرف لتجنب التكرار
             const staticNav = document.getElementById('top-static-nav');
             const adminViews = ['admin','driver-management','trips-management'];
@@ -1076,7 +1082,7 @@
                     staticNav.style.display = '';
                 }
             }
-            
+
             // إنشاء الرسوم البيانية إذا كانت الصفحة الرئيسية للمشرف
             if (window.appState.view === 'admin' && window.createCharts) {
                 setTimeout(() => window.createCharts(), 100);
